@@ -58,7 +58,9 @@ export async function signUpAction(prevState: any, formData: FormData) {
   const cookieStore = await cookies()
 
   cookieStore.set({
-    name: 'flash',
+    secure: true,
+    sameSite: 'strict',
+    name: 'notify',
     value: JSON.stringify({ type: 'success', message: 'Cuenta creada correctamente' }),
     path: '/',
     maxAge: 10,
