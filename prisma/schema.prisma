@@ -14,6 +14,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Action {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+}
+
+model Module {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+
+  submodules Submodule[]
+  createdAt  DateTime    @default(now())
+}
+
+model Submodule {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String
+  module      Module       @relation(fields: [moduleId], references: [id])
+  moduleId    String
+  permissions Permission[]
+
+  @@unique([moduleId, slug])
+}
+
 model User {
   id        String @id @default(cuid())
   firstName String
@@ -30,4 +57,59 @@ model User {
   deletedBy String?
 
   status Boolean @default(true)
+
+  userRoles UserRole[]
+}
+
+model Role {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  deletedAt DateTime?
+
+  status Boolean @default(true)
+
+  createdBy String
+  updatedBy String?
+  deletedBy String?
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id          String    @id @default(cuid())
+  name        String    @unique // optional, e.g. "capitalhumano.empleados.create"
+  submodule   Submodule @relation(fields: [submoduleId], references: [id])
+  submoduleId String
+  action      Action
+
+  rolePermissions RolePermission[]
+
+  @@unique([submoduleId, action])
+}
+
+model UserRole {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  role       Role     @relation(fields: [roleId], references: [id])
+  roleId     String
+  assignedAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  role         Role       @relation(fields: [roleId], references: [id])
+  roleId       String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  permissionId String
+  grantedAt    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
 }
