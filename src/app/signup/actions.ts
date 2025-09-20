@@ -1,7 +1,8 @@
 'use server';
 
-import bcrypt from 'bcrypt';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import bcrypt from 'bcrypt';
 import prismaClient from "@/lib/database";
 
 import { SignUpFormSchema } from "@/lib/definitions";
@@ -43,6 +44,8 @@ export async function signUpAction(prevState: any, formData: FormData) {
         lastName,
         email,
         password: hashedPassword,
+        status: true, // Set default status to true
+        createdBy: 'system',
       },
     });
   } catch (error) {
@@ -51,6 +54,15 @@ export async function signUpAction(prevState: any, formData: FormData) {
       message: 'Database Error: Failed to Sign In.',
     };
   }
+
+  const cookieStore = await cookies()
+
+  cookieStore.set({
+    name: 'flash',
+    value: JSON.stringify({ type: 'success', message: 'Cuenta creada correctamente' }),
+    path: '/',
+    maxAge: 10,
+  });
 
   redirect('/login');
 }
