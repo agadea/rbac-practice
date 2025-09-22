@@ -1,4 +1,4 @@
-"use server";
+"use client";
 
 export function SignInForm() {
   return <div>Sign In Form</div>;
