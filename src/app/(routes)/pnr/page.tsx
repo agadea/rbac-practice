@@ -1,14 +1,21 @@
-import { PnrList } from "./list";
+import { PnrList } from "./components/list";
 import { fetchAndTransformPnrs } from "./actions";
 
 export default async function PnrPage() {
-  const items = await fetchAndTransformPnrs().catch((err) => {
-    // en caso de error, devolvemos lista vacía y logueamos en servidor
-    // (Next.js server console)
-    // eslint-disable-next-line no-console
-    console.error("Failed fetching PNRs", err);
-    return [];
-  });
+  const items = await fetchAndTransformPnrs()
+    .catch((err) => {
+      // en caso de error, devolvemos lista vacía y logueamos en servidor
+      // (Next.js server console)
+      // eslint-disable-next-line no-console
+      console.error("Failed fetching PNRs", err);
+      return [];
+    })
+    //! for testing, limit to 10 items, remove later
+    .then((data) => data.slice(0, 10)) // limit to 10 items for performance
+    .finally(() => {
+      // eslint-disable-next-line no-console
+      console.log("fetch pnrs completed");
+    });
 
   return (
     <>

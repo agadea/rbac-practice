@@ -10,7 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { PnrListItem } from "./types";
+import type { PnrListItem } from "../types";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 export function PnrDetailDialog({
   open,
@@ -23,12 +24,18 @@ export function PnrDetailDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(val) => (val ? null : onClose())}>
-      <DialogContent showCloseButton={false} className="sm:max-w-3xl">
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-3xl  max-h-[90vh]"
+      >
         <DialogHeader>
           <DialogTitle>Detalle PNR — {item?.locator}</DialogTitle>
+          <DialogDescription className="mt-2 mb-4 text-sm text-muted-foreground">
+            Información detallada del PNR seleccionado.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-2">
+        <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-2 max-h-[60vh] overflow-auto">
           <div>
             <h4 className="text-sm font-medium">Record locator</h4>
             <pre className="whitespace-pre-wrap text-sm">

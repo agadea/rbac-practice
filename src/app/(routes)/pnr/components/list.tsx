@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { PnrListItem } from "./types";
+import type { PnrListItem } from "../types";
 import PnrDetailDialog from "./PnrDetailDialog";
 
 export function PnrList({ items = [] }: { items?: PnrListItem[] }) {
@@ -46,7 +46,6 @@ export function PnrList({ items = [] }: { items?: PnrListItem[] }) {
           <Button variant="outline" size="sm">
             Filtrar
           </Button>
-          <Button size="sm">Nuevo PNR</Button>
         </div>
       </div>
 
@@ -89,9 +88,7 @@ export function PnrList({ items = [] }: { items?: PnrListItem[] }) {
                     >
                       Ver
                     </Button>
-                    <Button variant="outline" size="sm">
-                      Editar
-                    </Button>
+                    {/* Edit action removed per request */}
                   </div>
                 </td>
               </tr>
@@ -108,3 +105,5 @@ export function PnrList({ items = [] }: { items?: PnrListItem[] }) {
     </div>
   );
 }
+
+export default PnrList;
