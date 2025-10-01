@@ -9,24 +9,7 @@ export function PnrList({ items = [] }: { items?: PnrListItem[] }) {
   // placeholder data when none provided
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PnrListItem | null>(null);
-  const data =
-    items.length > 0
-      ? items
-      : [
-          {
-            id: "1",
-            locator: "ABC123",
-            passenger: "John Doe",
-            // use fixed sample ISO dates to keep server/client deterministic
-            createdAt: "2025-09-30T12:00:00.000Z",
-          },
-          {
-            id: "2",
-            locator: "XYZ789",
-            passenger: "Jane Smith",
-            createdAt: "2025-09-29T08:30:00.000Z",
-          },
-        ];
+  const data = items.length > 0 ? items : [];
 
   // avoid locale-dependent rendering during SSR/hydration by
   // showing a deterministic string first, then switch to localized
