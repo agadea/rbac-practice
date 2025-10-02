@@ -30,9 +30,13 @@ export default function Passengers({
                   </div>
                   <div>
                     {p.ticketNumber ? (
-                      <span className="font-mono text-sm text-muted-foreground">TKT {p.ticketNumber}</span>
+                      <span className="font-mono text-sm text-muted-foreground">
+                        TKT {p.ticketNumber}
+                      </span>
                     ) : (
-                      <Badge variant="warning" className="text-xs">Sin ticket</Badge>
+                      <Badge variant="warning" className="text-xs">
+                        Sin ticket
+                      </Badge>
                     )}
                   </div>
                 </div>
