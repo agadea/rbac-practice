@@ -23,6 +23,12 @@ import {
 import passengerColumns from "./columns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 export function PassengersDataTable({
   data,
@@ -51,12 +57,31 @@ export function PassengersDataTable({
   return (
     <div className="w-full">
       <div className="w-full overflow-auto">
-        <div className="mb-4">
-          <Input
-            placeholder="Buscar pasajero, locator, ticket..."
-            value={globalFilter}
-            onChange={(e) => table.setGlobalFilter(e.target.value)}
-          />
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex-1">
+            <Input
+              placeholder="Buscar pasajero, locator, ticket..."
+              value={globalFilter}
+              onChange={(e) => table.setGlobalFilter(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onSelect={() => console.log("Exportar a Excel")}
+                >
+                  Exportar a Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         <Table className="table-fixed w-full">

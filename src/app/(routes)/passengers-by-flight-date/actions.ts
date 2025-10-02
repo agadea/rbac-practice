@@ -49,34 +49,38 @@ export async function fetchAndTransformPassengers(): Promise<PassengerRow[]> {
   for (const entry of list) {
     const flightNumber = entry.flight_number ?? "unknown";
     const flightDate = entry.flight_date ?? "unknown";
-    type PassengerRaw = {
-      name?: string | null;
-      surname?: string | null;
-      seat?: string | null;
-      ticket?: string | null;
-      doc?: string | null;
-      email?: string | null;
-      phone?: string | null;
-      status?: string | null;
-    };
+    const passengers = (entry.passengers as Record<string, unknown> | undefined) ?? {};
 
-    const passengers = (entry.passengers as Record<string, PassengerRaw> | undefined) ?? {};
+    function getFirstString(obj: Record<string, unknown>, keys: string[]): string | null {
+      for (const k of keys) {
+        const v = obj[k];
+        if (typeof v === "string") return v;
+      }
+      return null;
+    }
 
     for (const key of Object.keys(passengers)) {
-      const pax: PassengerRaw = passengers[key] || {};
-      const name = `${pax.name ?? ""} ${pax.surname ?? ""}`.trim() || null;
+      const pax = (passengers[key] as Record<string, unknown>) || {};
+      const nm = getFirstString(pax, ["name"]) ?? null;
+      const surname = getFirstString(pax, ["surname"]) ?? null;
+      const name = [nm, surname].filter(Boolean).join(" ") || null;
+
+      // intentar extraer ticket/doc con diferentes keys para mayor robustez
+      const ticketVal = getFirstString(pax, ["ticket", "ticketNumber", "ticket_number", "tkt"]);
+      const docVal = getFirstString(pax, ["doc", "document", "document_number", "id_document"]);
+
       const row: PassengerRow = {
         id: `${entry._id}-${key}`,
         flightNumber,
         flightDate,
         passengerName: name,
-        seat: pax.seat ?? null,
+        seat: (typeof pax["seat"] === "string" ? (pax["seat"] as string) : null),
         locator: entry._id ?? null,
-        ticketNumber: pax.ticket ?? null,
-        doc: pax.doc ?? null,
-        email: pax.email ?? null,
-        phone: pax.phone ?? null,
-        status: pax.status ?? null,
+        ticketNumber: ticketVal,
+        doc: docVal,
+        email: getFirstString(pax, ["email"]) ?? null,
+        phone: getFirstString(pax, ["phone", "telephone", "tel"]) ?? null,
+        status: getFirstString(pax, ["status", "state"]) ?? null,
       };
       rows.push(row);
     }
