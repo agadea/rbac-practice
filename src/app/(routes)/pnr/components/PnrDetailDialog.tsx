@@ -15,6 +15,7 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import transformPnr from "@/lib/pnrTransform";
+import { resolvePassengerNames } from "@/lib/utils";
 
 export function PnrDetailDialog({
   open,
@@ -61,6 +62,8 @@ export function PnrDetailDialog({
     if (typeof v === "object") return JSON.stringify(v);
     return String(v);
   };
+
+  // Usamos resolvePassengerNames importado desde utils. Lo llamamos con transformed.passengers
 
   return (
     <Dialog open={open} onOpenChange={(val) => (val ? null : onClose())}>
@@ -276,10 +279,14 @@ export function PnrDetailDialog({
               <div className="max-h-[56vh] overflow-auto space-y-2">
                 <h4 className="text-sm font-medium">Contacts</h4>
                 <div className="p-3 border rounded-md">
+                  {/* Preferimos los contacts normalizados si están disponibles */}
                   {Array.isArray(
-                    transformed?.raw?.contacts_list ?? item?.contacts_list
+                    transformed?.contacts ??
+                      transformed?.raw?.contacts_list ??
+                      item?.contacts_list
                   ) ? (
                     (
+                      transformed?.contacts ??
                       transformed?.raw?.contacts_list ??
                       item?.contacts_list ??
                       []
@@ -289,12 +296,13 @@ export function PnrDetailDialog({
                       </div>
                     ) : (
                       (
+                        transformed?.contacts ??
                         transformed?.raw?.contacts_list ??
                         item?.contacts_list ??
                         []
                       ).map((c: any, i: number) => (
                         <div key={i} className="mb-2 text-sm">
-                          {/* intentar mostrar email/phone si existen */}
+                          {/* intentar mostrar email/phone/description si existen */}
                           {c && typeof c === "object" ? (
                             <div>
                               <div>
@@ -304,9 +312,52 @@ export function PnrDetailDialog({
                               <div>
                                 <strong>Value:</strong>{" "}
                                 {renderVal(
-                                  c.value ?? c.contact_value ?? c.contact
+                                  c.description ??
+                                    c.value ??
+                                    c.contact_value ??
+                                    c.contact
                                 )}
                               </div>
+
+                              {/* association_list (raw) o associationKeys (normalizado) pueden contener passenger_reference_keys */}
+                              {(Array.isArray(c.association_list) ||
+                                Array.isArray(c.associationKeys)) && (
+                                <div className="text-sm text-muted-foreground mt-1">
+                                  <strong>Associated to:</strong>{" "}
+                                  {(() => {
+                                    // recolectar todas las passenger_reference_keys desde el objeto normalizado o el raw
+                                    const keys: string[] = [];
+                                    if (Array.isArray(c.associationKeys)) {
+                                      keys.push(
+                                        ...c.associationKeys.map(String)
+                                      );
+                                    } else if (
+                                      Array.isArray(c.association_list)
+                                    ) {
+                                      for (const a of c.association_list) {
+                                        if (!a) continue;
+                                        const prs =
+                                          a.passenger_reference_keys ??
+                                          a.passenger_reference_key ??
+                                          a.passenger_keys ??
+                                          null;
+                                        if (Array.isArray(prs))
+                                          keys.push(...prs.map(String));
+                                        else if (prs) keys.push(String(prs));
+                                      }
+                                    }
+                                    // Pasamos los pasajeros transformados para resolver nombres
+                                    const names = resolvePassengerNames(
+                                      transformed?.passengers ?? [],
+                                      keys
+                                    );
+                                    return names.length
+                                      ? names.join(", ")
+                                      : keys.join(", ");
+                                  })()}
+                                </div>
+                              )}
+
                               {c.note && (
                                 <div className="text-muted-foreground">
                                   {renderVal(c.note)}
@@ -322,7 +373,8 @@ export function PnrDetailDialog({
                   ) : (
                     <pre className="whitespace-pre-wrap text-sm">
                       {JSON.stringify(
-                        transformed?.raw?.contacts_list ??
+                        transformed?.contacts ??
+                          transformed?.raw?.contacts_list ??
                           item?.contacts_list ??
                           {},
                         null,

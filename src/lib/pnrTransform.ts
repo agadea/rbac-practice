@@ -65,6 +65,15 @@ export type Passenger = {
   raw?: any;
 };
 
+export type Contact = {
+  id?: string;
+  order?: number | null;
+  type?: string | null;
+  value?: string | null; // prefer description or value
+  associationKeys?: string[]; // passenger reference keys if present
+  raw?: any;
+};
+
 export type WarningItem = {
   level: 'error' | 'warning' | 'info';
   message: string;
@@ -75,6 +84,7 @@ export type TransformedPNR = {
   recordLocator?: string | null;
   pointOfSale?: PointOfSale | null;
   passengers: Passenger[];
+  contacts?: Contact[];
   warnings?: WarningItem[];
   raw?: any;
 };
@@ -268,6 +278,36 @@ export function transformPnr(raw: any): TransformedPNR {
       if (!uniq.has(k)) uniq.set(k, w);
     }
     out.warnings = Array.from(uniq.values());
+  }
+
+  // Normalizar contacts_list si existe en el raw
+  try {
+    const rawContacts = raw.contacts_list || raw.contacts || null;
+    const contactsArr = toArray(rawContacts as any);
+    if (contactsArr.length > 0) {
+      out.contacts = contactsArr.map((c: any, idx: number) => {
+        const associationKeys: string[] = [];
+        if (Array.isArray(c.association_list)) {
+          for (const a of c.association_list) {
+            if (!a) continue;
+            const prs = a.passenger_reference_keys ?? a.passenger_reference_key ?? a.passenger_keys ?? null;
+            if (Array.isArray(prs)) associationKeys.push(...prs.map(String));
+            else if (prs) associationKeys.push(String(prs));
+          }
+        }
+
+        return {
+          id: c.contact_reference_key ?? (c.id ? String(c.id) : `__c_${idx}`),
+          order: c.order ?? null,
+          type: c.type ?? c.contact_type ?? c.kind ?? null,
+          value: c.description ?? c.value ?? c.contact_value ?? c.contact ?? null,
+          associationKeys: associationKeys.length ? associationKeys : undefined,
+          raw: c,
+        } as Contact;
+      });
+    }
+  } catch (e) {
+    // no crash on malformed contacts
   }
 
   return out;

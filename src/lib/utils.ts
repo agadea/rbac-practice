@@ -18,3 +18,13 @@ export async function userHasPermission(userId: string, submoduleId: string, act
   });
   return !!rp;
 }
+
+// Resolver nombres de pasajeros a partir de las claves de referencia
+export function resolvePassengerNames(passengers: any[] | undefined, keys?: string[]) {
+  if (!keys || !Array.isArray(keys) || !passengers) return (keys ?? []).map(String);
+  return keys.map((k) => {
+    const p = passengers.find((pp) => pp.id === k || pp.raw?.passenger_reference_key === k);
+    if (!p) return k;
+    return `${p.givenName ?? ""} ${p.surname ?? ""}`.trim() || k;
+  });
+}
