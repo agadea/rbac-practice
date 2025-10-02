@@ -1,4 +1,5 @@
 import React from "react";
+import FieldRow from "./FieldRow";
 
 export default function PointOfSale({ transformed, item, renderVal }: any) {
   const pos = transformed?.pointOfSale ?? item?.point_of_sale ?? null;
@@ -13,39 +14,57 @@ export default function PointOfSale({ transformed, item, renderVal }: any) {
   }
 
   return (
-    <div className="max-h-[56vh] overflow-auto space-y-2">
+    <div className="max-h-[56vh] overflow-auto">
       <h4 className="text-sm font-medium">Point of Sale</h4>
-      <div className="p-3 border rounded-md">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          <div>
-            <strong>Agent / User:</strong> {renderVal(pos.agentId ?? pos.user)}
-          </div>
-          <div>
-            <strong>Country:</strong> {renderVal(pos.country)}
-          </div>
-          <div>
-            <strong>KIU Device:</strong>{" "}
-            {renderVal(pos.kiuDeviceId ?? pos.kiu_device_id)}
-          </div>
-          <div>
-            <strong>Sale Channel:</strong>{" "}
-            {renderVal(pos.saleChannel ?? pos.sale_channel)}
-          </div>
-          <div className="md:col-span-2">
-            <strong>Office Issue:</strong>{" "}
-            {renderVal(pos.officeIssueCode ?? pos.office_issue_code)}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 min-h-[200px]">
+        {/* POS card */}
+        <div className="p-3 border rounded-md flex flex-col h-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <FieldRow label="Agente / Usuario">
+                {renderVal(pos.agentId ?? pos.user)}
+              </FieldRow>
+            </div>
+            <div>
+              <FieldRow label="Country">{renderVal(pos.country)}</FieldRow>
+            </div>
+            <div>
+              <FieldRow label="KIU Device">
+                {renderVal(pos.kiuDeviceId ?? pos.kiu_device_id)}
+              </FieldRow>
+            </div>
+
+            <div>
+              <FieldRow label="Sale Channel">
+                {renderVal(pos.saleChannel ?? pos.sale_channel)}
+              </FieldRow>
+            </div>
+
+            <div>
+              <FieldRow label="Office Issue">
+                {renderVal(pos.officeIssueCode ?? pos.office_issue_code)}
+              </FieldRow>
+            </div>
           </div>
         </div>
+
+        {/* Raw POS card (se muestra al lado en md+) */}
+        {pos.raw ? (
+          <div className="p-3 border rounded-md flex flex-col h-full">
+            <div className="text-sm font-medium">Raw POS</div>
+            <div className="mt-2 overflow-auto">
+              <pre className="whitespace-pre-wrap text-sm font-mono">
+                {JSON.stringify(pos.raw ?? pos, null, 2)}
+              </pre>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 border rounded-md text-sm text-muted-foreground">
+            No hay raw POS.
+          </div>
+        )}
       </div>
-      {/* Raw separado en su propia tarjeta */}
-      {pos.raw && (
-        <div className="p-3 border rounded-md">
-          <div className="text-sm font-medium">Raw POS</div>
-          <pre className="whitespace-pre-wrap text-sm mt-2">
-            {JSON.stringify(pos.raw ?? pos, null, 2)}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }
