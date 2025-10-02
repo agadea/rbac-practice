@@ -22,9 +22,18 @@ export default function Passengers({
           {(transformed?.passengers ?? []).map((p: any) => (
             <div key={p.id} className="p-3 border rounded-md">
               <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium">
-                    {p.givenName} {p.surname}
+                <div className="min-w-0 flex items-center gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate max-w-[220px] md:max-w-[320px]">
+                      {p.givenName} {p.surname}
+                    </div>
+                  </div>
+                  <div>
+                    {p.ticketNumber ? (
+                      <span className="font-mono text-sm text-muted-foreground">TKT {p.ticketNumber}</span>
+                    ) : (
+                      <Badge variant="warning" className="text-xs">Sin ticket</Badge>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

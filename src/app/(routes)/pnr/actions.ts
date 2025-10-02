@@ -89,6 +89,9 @@ export async function fetchAndTransformPnrs(): Promise<PnrListItem[]> {
       }, {})
       : null;
     const contacts_list = (p.pnr_data as any)?.contacts_list ?? null;
+    const tickets_list = (p.pnr_data as any)?.tickets_list ?? null;
+    const ssr_tkne_information = (p.pnr_data as any)?.ssr_tkne_information ?? null;
+
 
     return {
       id,
@@ -100,6 +103,8 @@ export async function fetchAndTransformPnrs(): Promise<PnrListItem[]> {
       passengers_information,
       travel_document_information,
       contacts_list,
+      tickets_list,
+      ssr_tkne_information,
     } as PnrListItem;
   });
 }

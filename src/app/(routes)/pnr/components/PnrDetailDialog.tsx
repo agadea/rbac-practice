@@ -41,6 +41,8 @@ export function PnrDetailDialog({
       passengers_information: item.passengers_information ?? null,
       travel_documents: item.travel_document_information ?? null,
       contacts_list: item.contacts_list ?? null,
+      tickets_list: (item as any).tickets_list ?? null,
+      ssr_tkne_information: (item as any).ssr_tkne_information ?? null,
     } as any;
   }, [item]);
 

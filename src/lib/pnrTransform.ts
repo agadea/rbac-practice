@@ -59,6 +59,7 @@ export type Passenger = {
   passengerType?: string | null;
   infantAssociated?: boolean;
   nationality?: string | null;
+  ticketNumber?: string | null;
   foids: FOID[];
   travelDocuments: TravelDocument[];
   addresses: Address[];
@@ -84,8 +85,18 @@ export type TransformedPNR = {
   recordLocator?: string | null;
   pointOfSale?: PointOfSale | null;
   passengers: Passenger[];
+  tickets?: Ticket[];
   contacts?: Contact[];
   warnings?: WarningItem[];
+  raw?: any;
+};
+
+export type Ticket = {
+  ticketNumber: string;
+  passengerRefs?: string[]; // passenger ids
+  order?: number | null;
+  transaction?: string | null;
+  ssrEntries?: Array<{ couponNumber?: string | null; flightSegmentRef?: string | null; raw?: any }>;
   raw?: any;
 };
 
@@ -308,6 +319,94 @@ export function transformPnr(raw: any): TransformedPNR {
     }
   } catch (e) {
     // no crash on malformed contacts
+  }
+
+  // Normalizar tickets: combinar tickets_list (entrada plana) con ssr_tkne_information (coupons)
+  try {
+    const ticketsArr = toArray(raw.tickets_list || raw.tickets || null) as any[];
+    const ssrArr = toArray(raw.ssr_tkne_information || raw.ssr_tk_ne_information || raw.ssr_tkne || null) as any[];
+
+    const ticketsMap: Record<string, Ticket> = {};
+
+    // Primero, procesar tickets_list como fuente primaria de ticketNumber
+    for (const t of ticketsArr) {
+      const tn = t.ticket_number ?? t.ticketNumber ?? t.number ?? null;
+      if (!tn) continue;
+      const key = String(tn);
+      ticketsMap[key] = ticketsMap[key] || { ticketNumber: key, passengerRefs: [], order: t.order ?? null, transaction: (t.transaction_details?.source ?? t.transaction) ?? null, ssrEntries: [], raw: t };
+      // passenger association may be present. accept multiple naming conventions including passenger_reference_associated
+      const prs =
+        t.passenger_reference_keys ??
+        t.passenger_reference_key ??
+        t.passenger_keys ??
+        t.passengerRef ??
+        t.passenger_reference_associated ??
+        t.passenger_reference_associated_key ??
+        null;
+      if (prs) {
+        if (Array.isArray(prs)) ticketsMap[key].passengerRefs!.push(...prs.map(String));
+        else ticketsMap[key].passengerRefs!.push(String(prs));
+      }
+    }
+
+    // Luego enriquecer con ssr entries (puede venir como array de entries o como objeto { passengerRef: [entries] })
+    const rawSsr = raw.ssr_tkne_information || raw.ssr_tk_ne_information || raw.ssr_tkne || null;
+    if (rawSsr) {
+      if (Array.isArray(rawSsr)) {
+        for (const s of rawSsr) {
+          const coupon = s.coupon_number ?? s.coupon ?? s.couponNumber ?? null;
+          const ticketRef = s.ticket_number ?? s.ticketNumber ?? s.ticket ?? null;
+          const passengerRef = s.passenger_reference_keys ?? s.passenger_reference_key ?? s.passenger_reference_associated ?? s.associated_passenger_keys ?? null;
+          const tnKey = ticketRef ? String(ticketRef) : coupon ? String(coupon) : null;
+          const key = tnKey || `__coupon_${coupon ?? Math.random().toString(36).slice(2, 8)}`;
+          ticketsMap[key] = ticketsMap[key] || { ticketNumber: key, passengerRefs: [], ssrEntries: [], raw: null };
+          ticketsMap[key].ssrEntries = ticketsMap[key].ssrEntries || [];
+          ticketsMap[key].ssrEntries!.push({ couponNumber: String(coupon ?? ''), flightSegmentRef: s.flight_segment_reference_key ?? s.flightSegmentReferenceKey ?? null, raw: s });
+          if (passengerRef) {
+            if (Array.isArray(passengerRef)) ticketsMap[key].passengerRefs!.push(...passengerRef.map(String));
+            else ticketsMap[key].passengerRefs!.push(String(passengerRef));
+          }
+        }
+      } else if (typeof rawSsr === 'object') {
+        // rawSsr often is an object keyed by passenger reference, with each value an array of entries
+        for (const [pRef, entries] of Object.entries(rawSsr as RawMap<any>)) {
+          for (const s of toArray(entries)) {
+            const _s = s as any;
+            const coupon = _s.coupon_number ?? _s.coupon ?? _s.couponNumber ?? null;
+            const ticketRef = _s.ticket_number ?? _s.ticketNumber ?? _s.ticket ?? null;
+            const passengerRef = pRef || _s.passenger_reference_key ?? _s.passenger_reference_keys ?? _s.passenger_reference_associated ?? null;
+            const tnKey = ticketRef ? String(ticketRef) : coupon ? String(coupon) : null;
+            const key = tnKey || `__coupon_${coupon ?? Math.random().toString(36).slice(2, 8)}`;
+            ticketsMap[key] = ticketsMap[key] || { ticketNumber: key, passengerRefs: [], ssrEntries: [], raw: null };
+            ticketsMap[key].ssrEntries = ticketsMap[key].ssrEntries || [];
+            ticketsMap[key].ssrEntries!.push({ couponNumber: String(coupon ?? ''), flightSegmentRef: _s.flight_segment_reference_key ?? _s.flightSegmentReferenceKey ?? null, raw: _s });
+            if (passengerRef) {
+              if (Array.isArray(passengerRef)) ticketsMap[key].passengerRefs!.push(...(passengerRef as any).map(String));
+              else ticketsMap[key].passengerRefs!.push(String(passengerRef));
+            }
+          }
+        }
+      }
+    }
+
+    const finalTickets = Object.values(ticketsMap).map((t) => ({ ...t }));
+    if (finalTickets.length > 0) {
+      out.tickets = finalTickets;
+      // Assign ticketNumber to passengers where a passengerRef matches
+      for (const p of out.passengers) {
+        // find a ticket that references this passenger
+        const found = finalTickets.find((tk) => (tk.passengerRefs || []).includes(p.id));
+        if (found) {
+          p.ticketNumber = found.ticketNumber;
+        } else {
+          // fallback: try to find by passenger order matching ticket order
+          const byOrder = finalTickets.find((tk) => typeof tk.order === 'number' && typeof p.order === 'number' && tk.order === p.order);
+          if (byOrder) p.ticketNumber = byOrder.ticketNumber;
+        }
+      }
+    }
+  } catch (e) {
+    // ignore ticket normalization failures
   }
 
   return out;

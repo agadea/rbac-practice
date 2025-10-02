@@ -21,6 +21,8 @@ export type PnrListItem = {
   passengers_information?: Record<string, unknown> | null;
   travel_document_information?: Record<string, unknown> | null;
   contacts_list?: unknown[] | null;
+  tickets_list?: unknown[] | null;
+  ssr_tkne_information?: Record<string, unknown> | null;
 };
 
 export default PnrSchema;
