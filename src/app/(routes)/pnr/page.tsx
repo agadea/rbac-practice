@@ -1,4 +1,4 @@
-import { PnrList } from "./components/list";
+import PnrDataTable from "./components/data-table";
 import { fetchAndTransformPnrs } from "./actions";
 
 export default async function PnrPage() {
@@ -10,8 +10,8 @@ export default async function PnrPage() {
       console.error("Failed fetching PNRs", err);
       return [];
     })
-    //! for testing, limit to 10 items, remove later
-    .then((data) => data.slice(0, 10)) // limit to 10 items for performance
+    // //! for testing, limit to 10 items, remove later
+    // .then((data) => data.slice(0, 10)) // limit to 10 items for performance
     .finally(() => {
       // eslint-disable-next-line no-console
       console.log("fetch pnrs completed");
@@ -22,7 +22,8 @@ export default async function PnrPage() {
       <h2 className="text-3xl font-semibold text-center w-full">PNRS</h2>
 
       <div className="mt-6 w-full max-w-4xl mx-auto">
-        <PnrList items={items} />
+        {/* DataTable es un Client Component que recibe items del Server Component */}
+        <PnrDataTable data={items} />
       </div>
     </>
   );
