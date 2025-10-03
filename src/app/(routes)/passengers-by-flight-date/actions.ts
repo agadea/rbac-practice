@@ -44,20 +44,24 @@ export default fetchPassengersByFlightDate;
 
 export async function fetchAndTransformPassengers(): Promise<PassengerRow[]> {
   const list = await fetchPassengersByFlightDate();
+  return transformPassengersList(list);
+}
 
+export function transformPassengersList(list: PassengerByFlightDate[]): PassengerRow[] {
   const rows: PassengerRow[] = [];
+
+  function getFirstString(obj: Record<string, unknown>, keys: string[]): string | null {
+    for (const k of keys) {
+      const v = obj[k];
+      if (typeof v === "string") return v;
+    }
+    return null;
+  }
+
   for (const entry of list) {
     const flightNumber = entry.flight_number ?? "unknown";
     const flightDate = entry.flight_date ?? "unknown";
     const passengers = (entry.passengers as Record<string, unknown> | undefined) ?? {};
-
-    function getFirstString(obj: Record<string, unknown>, keys: string[]): string | null {
-      for (const k of keys) {
-        const v = obj[k];
-        if (typeof v === "string") return v;
-      }
-      return null;
-    }
 
     for (const key of Object.keys(passengers)) {
       const pax = (passengers[key] as Record<string, unknown>) || {};
@@ -65,7 +69,6 @@ export async function fetchAndTransformPassengers(): Promise<PassengerRow[]> {
       const surname = getFirstString(pax, ["surname"]) ?? null;
       const name = [nm, surname].filter(Boolean).join(" ") || null;
 
-      // intentar extraer ticket/doc con diferentes keys para mayor robustez
       const ticketVal = getFirstString(pax, ["ticket", "ticketNumber", "ticket_number", "tkt"]);
       const docVal = getFirstString(pax, ["doc", "document", "document_number", "id_document"]);
 
@@ -87,5 +90,48 @@ export async function fetchAndTransformPassengers(): Promise<PassengerRow[]> {
   }
 
   return rows;
+}
+
+/**
+ * Envía un POST al backend externo para obtener pasajeros por número de vuelo y fecha.
+ * Acepta dos formatos de respuesta: un array directo o { data: [...] }.
+ */
+export async function postPassengersByFlightDate(flightNumber: number, flightDate: string): Promise<PassengerRow[]> {
+  const res = await fetch("http://localhost:3050/pnr/passengers/by-flight-date", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ flightNumber, flightDate }),
+  });
+
+  console.log("res", res);
+
+  if (!res.ok) {
+    throw new Error(`Backend returned ${res.status}`);
+  }
+
+  const json = await res.json();
+  let payload: unknown = json;
+
+  if (json && typeof json === "object" && Array.isArray((json as any).data)) {
+    payload = (json as any).data;
+  }
+
+  if (!Array.isArray(payload)) {
+    throw new Error("Unexpected response format from backend");
+  }
+
+  const parsed = z.array(PassengerByFlightDateSchema).safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(`Response validation failed: ${parsed.error.message}`);
+  }
+
+  return transformPassengersList(parsed.data);
+}
+
+// Server Action wrapper: permite pasar esta función a un Client Component
+// y ejecutarla en el servidor sin necesidad de un endpoint proxy.
+export async function searchPassengersServerAction(flightNumber: number, flightDate: string): Promise<PassengerRow[]> {
+  "use server";
+  return postPassengersByFlightDate(flightNumber, flightDate);
 }
 

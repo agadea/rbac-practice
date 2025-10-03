@@ -1,4 +1,7 @@
-import { fetchAndTransformPassengers } from "./actions";
+import {
+  fetchAndTransformPassengers,
+  searchPassengersServerAction,
+} from "./actions";
 import PassengersDataTable from "./components/data-table";
 import type { PassengerRow } from "./types";
 
@@ -75,7 +78,10 @@ export default async function PassengersByFlightDatePage() {
       <div className="mt-6 w-full max-w-4xl mx-auto">
         {/* DataTable es un Client Component que recibe items del Server Component */}
         {/* @ts-expect-error Server -> Client prop serialization */}
-        <PassengersDataTable data={displayRows} />
+        <PassengersDataTable
+          data={displayRows}
+          searchAction={searchPassengersServerAction}
+        />
       </div>
     </>
   );
